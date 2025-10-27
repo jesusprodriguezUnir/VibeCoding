@@ -1,0 +1,35 @@
+{
+  "fields": [
+    "key",
+    "summary",
+    "status",
+    "priority",
+    "assignee",
+    "reporter",
+    "created",
+    "updated",
+    "project",
+    "issuetype",
+    "duedate",
+    "labels",
+    "components"
+  ],
+  "max_results": 100,
+  "default_jql": "assignee = currentUser() ORDER BY updated DESC",
+  "export_formats": {
+    "csv": {
+      "encoding": "utf-8",
+      "separator": ","
+    },
+    "json": {
+      "indent": 2,
+      "ensure_ascii": false
+    }
+  },
+  "table_formats": {
+    "default": "grid",
+    "options": ["grid", "simple", "plain", "fancy_grid", "pipe"]
+  },
+  "date_format": "%Y-%m-%d %H:%M",
+  "summary_max_length": 80
+}
