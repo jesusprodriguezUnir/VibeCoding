@@ -324,7 +324,7 @@ def render_dashboard():
 
 
 def render_issues_list():
-    """Renderiza la lista de issues."""
+    """Renderiza la lista de issues con diseño mejorado."""
     if not st.session_state.cached_issues:
         st.info("📭 No hay datos cargados. Usa la barra lateral para obtener datos.")
         return
@@ -334,47 +334,58 @@ def render_issues_list():
     
     st.subheader(f"📋 Lista de Issues ({len(issues)} encontrados)")
     
-    # Filtros adicionales para la tabla
-    col1, col2, col3 = st.columns(3)
+    # Opciones de visualización
+    view_mode = st.radio(
+        "Modo de Visualización:",
+        ["📊 Tabla Detallada", "🎴 Cards Elegantes"],
+        horizontal=True,
+        key="view_mode"
+    )
     
-    with col1:
-        # Filtro por estado
-        all_statuses = list(set(
-            issue.get('fields', {}).get('status', {}).get('name', 'Unknown')
-            for issue in issues
-        ))
-        selected_statuses = st.multiselect(
-            "Filtrar por Estado",
-            all_statuses,
-            default=all_statuses,
-            key="status_filter"
-        )
+    st.markdown("---")
     
-    with col2:
-        # Filtro por proyecto
-        all_projects = list(set(
-            issue.get('fields', {}).get('project', {}).get('key', 'Unknown')
-            for issue in issues
-        ))
-        selected_projects = st.multiselect(
-            "Filtrar por Proyecto",
-            all_projects,
-            default=all_projects,
-            key="project_filter"
-        )
-    
-    with col3:
-        # Filtro por prioridad
-        all_priorities = list(set(
-            issue.get('fields', {}).get('priority', {}).get('name', 'Unknown')
-            for issue in issues
-        ))
-        selected_priorities = st.multiselect(
-            "Filtrar por Prioridad",
-            all_priorities,
-            default=all_priorities,
-            key="priority_filter"
-        )
+    # Filtros adicionales
+    with st.expander("🔍 Filtros Avanzados", expanded=True):
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            # Filtro por estado
+            all_statuses = list(set(
+                issue.get('fields', {}).get('status', {}).get('name', 'Unknown')
+                for issue in issues
+            ))
+            selected_statuses = st.multiselect(
+                "Estado",
+                all_statuses,
+                default=all_statuses,
+                key="status_filter"
+            )
+        
+        with col2:
+            # Filtro por proyecto
+            all_projects = list(set(
+                issue.get('fields', {}).get('project', {}).get('key', 'Unknown')
+                for issue in issues
+            ))
+            selected_projects = st.multiselect(
+                "Proyecto",
+                all_projects,
+                default=all_projects,
+                key="project_filter"
+            )
+        
+        with col3:
+            # Filtro por prioridad
+            all_priorities = list(set(
+                issue.get('fields', {}).get('priority', {}).get('name', 'Unknown')
+                for issue in issues
+            ))
+            selected_priorities = st.multiselect(
+                "Prioridad",
+                all_priorities,
+                default=all_priorities,
+                key="priority_filter"
+            )
     
     # Aplicar filtros
     filtered_issues = []
@@ -389,28 +400,172 @@ def render_issues_list():
             priority in selected_priorities):
             filtered_issues.append(issue)
     
-    # Mostrar tabla
+    # Mostrar según el modo seleccionado
     if filtered_issues:
-        df = processor.format_issues_for_display(filtered_issues)
+        if view_mode == "🎴 Cards Elegantes":
+            render_issues_cards(filtered_issues)
+        else:
+            render_issues_table(filtered_issues, processor)
         
-        # Hacer que la tabla sea más interactiva
-        st.dataframe(
-            df,
-            use_container_width=True,
-            height=600,
-            column_config={
-                "Key": st.column_config.TextColumn("Clave", width="small"),
-                "Summary": st.column_config.TextColumn("Resumen", width="large"),
-                "Status": st.column_config.TextColumn("Estado", width="small"),
-                "Priority": st.column_config.TextColumn("Prioridad", width="small"),
-                "Project": st.column_config.TextColumn("Proyecto", width="small"),
-                "Updated": st.column_config.DatetimeColumn("Actualizado", width="medium")
-            }
-        )
-        
-        st.info(f"Mostrando {len(filtered_issues)} de {len(issues)} issues")
+        st.success(f"✨ Mostrando {len(filtered_issues)} de {len(issues)} issues")
     else:
-        st.warning("No hay issues que coincidan con los filtros seleccionados")
+        st.warning("🔍 No hay issues que coincidan con los filtros seleccionados")
+
+
+def render_issues_cards(issues):
+    """Renderiza issues como cards elegantes."""
+    base_url = st.session_state.jira_client.base_url if st.session_state.jira_client else "https://your-jira.atlassian.net"
+    
+    # Paginación
+    items_per_page = 6
+    total_pages = (len(issues) + items_per_page - 1) // items_per_page
+    
+    if total_pages > 1:
+        page = st.selectbox(
+            "📄 Página",
+            range(1, total_pages + 1),
+            format_func=lambda x: f"Página {x} de {total_pages}",
+            key="page_selector"
+        )
+        start_idx = (page - 1) * items_per_page
+        end_idx = start_idx + items_per_page
+        page_issues = issues[start_idx:end_idx]
+    else:
+        page_issues = issues[:items_per_page]
+    
+    # Renderizar cards en columnas
+    for i in range(0, len(page_issues), 2):
+        col1, col2 = st.columns(2)
+        
+        # Card izquierda
+        with col1:
+            if i < len(page_issues):
+                render_issue_card(page_issues[i], base_url)
+        
+        # Card derecha  
+        with col2:
+            if i + 1 < len(page_issues):
+                render_issue_card(page_issues[i + 1], base_url)
+
+
+def render_issue_card(issue, base_url):
+    """Renderiza una card individual para un issue usando componentes nativos de Streamlit."""
+    fields = issue.get('fields', {})
+    key = issue.get('key', 'N/A')
+    summary = fields.get('summary', 'Sin título')
+    status = fields.get('status', {}).get('name', 'Unknown')
+    priority = fields.get('priority', {}).get('name', 'Unknown')
+    project = fields.get('project', {}).get('key', 'Unknown')
+    assignee = fields.get('assignee', {})
+    assignee_name = assignee.get('displayName', 'Sin asignar') if assignee else 'Sin asignar'
+    updated = fields.get('updated', '')
+    
+    # URL del issue
+    issue_url = f"{base_url}/browse/{key}"
+    
+    # Colores por prioridad
+    priority_colors = {
+        'Highest': '🔴',
+        'High': '🟠', 
+        'Medium': '🟡',
+        'Low': '🟢',
+        'Lowest': '🔵'
+    }
+    priority_icon = priority_colors.get(priority, '⚪')
+    
+    # Colores por estado
+    status_colors = {
+        'NUEVA': '🆕',
+        'EN CURSO': '⚡',
+        'ESCALADO': '🚨',
+        'ANÁLISIS': '🔍',
+        'CERRADA': '✅',
+        'RESUELTA': '✅'
+    }
+    status_icon = status_colors.get(status, '📋')
+    
+    # Formatear fecha
+    if updated:
+        try:
+            dt = datetime.fromisoformat(updated.replace('Z', '+00:00'))
+            formatted_date = dt.strftime('%d/%m/%y %H:%M')
+        except (ValueError, TypeError):
+            formatted_date = updated[:10]
+    else:
+        formatted_date = 'N/A'
+    
+    # Card usando componentes nativos de Streamlit
+    with st.container():
+        # Crear un contenedor con borde
+        st.markdown("---")
+        
+        # Título con icono de estado
+        st.markdown(f"### {status_icon} **{key}**")
+        
+        # Resumen del issue
+        summary_short = summary[:100] + '...' if len(summary) > 100 else summary
+        st.markdown(f"**📝 Resumen:** {summary_short}")
+        
+        # Información en columnas
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown(f"**📁 Proyecto:** `{project}`")
+            st.markdown(f"**{priority_icon} Prioridad:** `{priority}`")
+        
+        with col2:
+            st.markdown(f"**👤 Asignado:** {assignee_name}")
+            st.markdown(f"**📅 Actualizado:** {formatted_date}")
+        
+        # Estado con color
+        if status in ['CERRADA', 'RESUELTA']:
+            st.success(f"📊 Estado: {status}")
+        elif status in ['EN CURSO', 'ESCALADO']:
+            st.info(f"📊 Estado: {status}")
+        elif status == 'NUEVA':
+            st.warning(f"� Estado: {status}")
+        else:
+            st.info(f"📊 Estado: {status}")
+        
+        # Botón para ir a Jira
+        col1, col2, _ = st.columns([1, 2, 1])
+        with col2:
+            if st.button(f"🔗 Ver {key} en Jira", key=f"jira_{key}", use_container_width=True, type="primary"):
+                st.success(f"🚀 Abriendo {key} en Jira...")
+                st.markdown(f"**Enlace directo:** [{key}]({issue_url})")
+                st.balloons()
+        
+        st.markdown("---")
+
+
+def render_issues_table(filtered_issues, processor):
+    """Renderiza issues como tabla detallada."""
+    df = processor.format_issues_for_display(filtered_issues)
+    
+    # Agregar columna de enlace
+    base_url = st.session_state.jira_client.base_url if st.session_state.jira_client else "https://your-jira.atlassian.net"
+    df['🔗 Enlace'] = df['Key'].apply(lambda key: f"{base_url}/browse/{key}")
+    
+    # Hacer que la tabla sea más interactiva
+    st.dataframe(
+        df,
+        use_container_width=True,
+        height=600,
+        column_config={
+            "Key": st.column_config.TextColumn("🔑 Clave", width="small"),
+            "Summary": st.column_config.TextColumn("📝 Resumen", width="large"),
+            "Status": st.column_config.TextColumn("📊 Estado", width="small"),
+            "Priority": st.column_config.TextColumn("⚡ Prioridad", width="small"),
+            "Project": st.column_config.TextColumn("📁 Proyecto", width="small"),
+            "Assignee": st.column_config.TextColumn("👤 Asignado", width="medium"),
+            "Updated": st.column_config.DatetimeColumn("📅 Actualizado", width="medium"),
+            "🔗 Enlace": st.column_config.LinkColumn(
+                "🔗 Ver en Jira",
+                help="Haz clic para abrir en Jira",
+                width="medium"
+            )
+        }
+    )
 
 
 def render_analysis():

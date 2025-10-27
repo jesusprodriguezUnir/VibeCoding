@@ -89,11 +89,23 @@ JIRA_TOKEN=tu_token_de_api
 ## 🚀 Uso
 
 ### 🖥️ Interfaz Web (Recomendado)
+
+#### Opción 1: Script automático (Más fácil)
 ```bash
-# Iniciar aplicación Streamlit
-make run
-# o
-streamlit run app.py
+# PowerShell
+.\start_app.ps1
+
+# CMD/Batch
+start_app.bat
+```
+
+#### Opción 2: Manual
+```bash
+# Activar entorno virtual correcto
+C:\Temp\VibeCoding\.venv\Scripts\Activate.ps1
+
+# Iniciar aplicación con ruta completa
+C:\Temp\VibeCoding\.venv\Scripts\streamlit.exe run app.py
 ```
 
 La aplicación estará disponible en: `http://localhost:8501`
