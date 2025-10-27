@@ -97,16 +97,19 @@ class TestUtils:
         assert result['valid'] is True
         assert 'válida' in result['message']
     
-    @patch('pathlib.Path.exists')
-    @patch.dict('os.environ', {
-        'JIRA_BASE_URL': 'https://test.atlassian.net'
-        # Faltan JIRA_EMAIL y JIRA_TOKEN
-    })
+    @patch('pathlib.Path.exists')  
     def test_validate_env_file_missing_vars(self, mock_exists):
         """Test validación con variables faltantes."""
         mock_exists.return_value = True
         
-        result = validate_env_file()
+        # Usar patch.dict para limpiar completamente el entorno y solo dejar JIRA_BASE_URL
+        with patch.dict('os.environ', {
+            'JIRA_BASE_URL': 'https://test.atlassian.net'
+        }, clear=True):
+            # Mockear load_dotenv para que no cargue nada del archivo .env real
+            with patch('dotenv.load_dotenv') as mock_load_dotenv:
+                mock_load_dotenv.return_value = None
+                result = validate_env_file()
         
         assert result['valid'] is False
         assert 'faltantes' in result['message']

@@ -30,8 +30,9 @@ class TestJiraClient:
     def test_init_without_env_vars(self):
         """Test que falla sin variables de entorno."""
         with patch.dict('os.environ', {}, clear=True):
-            with pytest.raises(ValueError, match="Faltan credenciales"):
-                JiraClient()
+            with patch('src.jira_client.load_dotenv'):  # Evitar carga del .env real
+                with pytest.raises(ValueError, match="Faltan credenciales"):
+                    JiraClient()
     
     @patch.dict('os.environ', {
         'JIRA_BASE_URL': 'https://test.atlassian.net',
