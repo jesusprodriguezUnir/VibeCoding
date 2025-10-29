@@ -87,15 +87,28 @@ class Config:
     
     @classmethod
     def get_jira_config(cls) -> JiraConfig:
-        """Obtiene configuración de Jira desde variables de entorno."""
+        """Obtiene configuración de Jira desde variables de entorno o Streamlit secrets."""
+        # Primero intentar variables de entorno (desarrollo)
         base_url = os.getenv('JIRA_BASE_URL')
         email = os.getenv('JIRA_EMAIL')
         token = os.getenv('JIRA_TOKEN')
         
+        # Si no están disponibles, intentar Streamlit secrets (producción)
+        if not all([base_url, email, token]):
+            try:
+                import streamlit as st
+                if hasattr(st, 'secrets') and 'jira' in st.secrets:
+                    base_url = base_url or st.secrets.jira.get('base_url')
+                    email = email or st.secrets.jira.get('email')
+                    token = token or st.secrets.jira.get('token')
+            except (ImportError, AttributeError, KeyError):
+                pass
+        
         if not all([base_url, email, token]):
             raise ValueError(
-                "Faltan variables de entorno de Jira. "
-                "Configura JIRA_BASE_URL, JIRA_EMAIL y JIRA_TOKEN"
+                "Faltan credenciales de Jira. Configura:\n"
+                "- Variables de entorno: JIRA_BASE_URL, JIRA_EMAIL, JIRA_TOKEN\n"
+                "- O Streamlit secrets: [jira] base_url, email, token"
             )
         
         return JiraConfig(
