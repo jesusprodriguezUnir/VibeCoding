@@ -16,15 +16,15 @@ load_dotenv()
 sys.path.append(str(Path(__file__).parent / "src"))
 
 # Imports de módulos especializados
-from src.app_state import init_session_state, create_jira_client
-from src.data_fetcher import fetch_data
-from src.ui.layout import render_header, render_info_panel
-from src.ui.sidebar import render_sidebar
-from src.ui.dashboard import render_dashboard
-from src.ui.dashboard_custom import render_dashboard_selector, render_widget_gallery
-from src.ui.issues import render_issues_list
-from src.ui.analysis import render_analysis, render_export
-from src.utils import setup_logging
+from core.app_state import init_session_state, create_jira_client
+from shared.data_fetcher import fetch_data
+from shared.ui.layout import render_header, render_info_panel
+from shared.ui.sidebar import render_sidebar
+from features.dashboards.standard import render_dashboard
+from features.dashboards.custom import render_dashboard_selector, render_widget_gallery
+from features.issues.viewer import render_issues_list
+from features.analysis.reports import render_analysis, render_export
+from shared.utils import setup_logging
 
 # Configurar página
 st.set_page_config(

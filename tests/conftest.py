@@ -13,9 +13,9 @@ import sys
 # Agregar src al path
 sys.path.append(str(Path(__file__).parent.parent / "src"))
 
-from src.jira_client import JiraClient
-from src.data_processor import JiraDataProcessor
-from src.config import Config
+from jira_client import JiraClient
+from data_processor import JiraDataProcessor
+from config import Config
 
 
 @pytest.fixture
