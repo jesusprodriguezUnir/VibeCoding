@@ -20,7 +20,7 @@ def render_sidebar() -> Tuple[str, str, str, int]:
         # Navegación principal
         view_type = st.selectbox(
             "🧭 Navegación",
-            ["Dashboard", "Lista de Issues", "Análisis", "Exportar Datos"],
+            ["Dashboard", "Dashboard Personalizable", "Lista de Issues", "Análisis", "Exportar Datos"],
             help="Selecciona la vista que deseas explorar"
         )
         

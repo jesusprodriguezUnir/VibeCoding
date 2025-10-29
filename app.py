@@ -21,6 +21,7 @@ from src.data_fetcher import fetch_data
 from src.ui.layout import render_header, render_info_panel
 from src.ui.sidebar import render_sidebar
 from src.ui.dashboard import render_dashboard
+from src.ui.dashboard_custom import render_dashboard_selector, render_widget_gallery
 from src.ui.issues import render_issues_list
 from src.ui.analysis import render_analysis, render_export
 from src.utils import setup_logging
@@ -62,6 +63,8 @@ def main():
     # Renderizar vista seleccionada
     if view_type == "Dashboard":
         render_dashboard()
+    elif view_type == "Dashboard Personalizable":
+        render_dashboard_selector()
     elif view_type == "Lista de Issues":
         render_issues_list()
     elif view_type == "Análisis":
