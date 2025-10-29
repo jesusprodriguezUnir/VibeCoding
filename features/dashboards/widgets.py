@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Any, Callable
 from dataclasses import dataclass
 from enum import Enum
-from shared.utils import format_number
+from shared.utils import format_number, calculate_age_days
 from shared.ui.ui_utils import get_safe_issues, validate_issues_data
 
 
@@ -895,11 +895,8 @@ class WidgetRegistry:
             if show_age:
                 created_str = fields.get('created')
                 if created_str:
-                    try:
-                        created_date = datetime.fromisoformat(created_str.replace('Z', '+00:00'))
-                        age_days = (datetime.now() - created_date).days
-                    except Exception:
-                        age_days = 0
+                    # Usar función utilitaria para calcular edad de forma segura
+                    age_days = calculate_age_days(created_str)
             
             # Determinar urgencia
             urgent = False

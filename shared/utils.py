@@ -160,3 +160,43 @@ JIRA_TOKEN=tu_token_aqui
         return True
     except Exception:
         return False
+
+
+def parse_jira_datetime(date_str: str) -> Optional[datetime]:
+    """Parsea fecha de Jira a datetime naive para evitar problemas de zona horaria.
+    
+    Args:
+        date_str: Fecha en formato ISO de Jira (ej: '2023-10-27T10:30:00.000+0000')
+        
+    Returns:
+        datetime naive o None si hay error
+    """
+    if not date_str:
+        return None
+        
+    try:
+        # Parsear la fecha y convertir a naive (sin zona horaria)
+        dt = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+        return dt.replace(tzinfo=None)
+    except (ValueError, AttributeError):
+        return None
+
+
+def calculate_age_days(date_str: str, reference_date: Optional[datetime] = None) -> int:
+    """Calcula la edad en días desde una fecha de Jira.
+    
+    Args:
+        date_str: Fecha en formato Jira
+        reference_date: Fecha de referencia (por defecto datetime.now())
+        
+    Returns:
+        Número de días de diferencia
+    """
+    if reference_date is None:
+        reference_date = datetime.now()
+        
+    parsed_date = parse_jira_datetime(date_str)
+    if parsed_date is None:
+        return 0
+        
+    return (reference_date - parsed_date).days

@@ -5,15 +5,10 @@ Aplicación refactorizada en módulos especializados para mejor mantenibilidad.
 """
 
 import streamlit as st
-from pathlib import Path
-import sys
 from dotenv import load_dotenv
 
 # Cargar variables de entorno
 load_dotenv()
-
-# Configurar path para imports
-sys.path.append(str(Path(__file__).parent / "src"))
 
 # Imports de módulos especializados
 from core.app_state import init_session_state, create_jira_client

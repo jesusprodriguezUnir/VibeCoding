@@ -7,7 +7,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 from typing import List, Dict, Any
-from shared.utils import format_number
+from shared.utils import format_number, parse_jira_datetime, calculate_age_days
 
 
 def render_analysis():
@@ -160,9 +160,12 @@ def render_time_analysis(issues: List[Dict[str, Any]], processor):
         created = issue.get('fields', {}).get('created', '')
         if created:
             try:
-                date = datetime.fromisoformat(created.replace('Z', '+00:00'))
-                weekday_data[date.weekday()] += 1
-            except ValueError:
+                # Usar la función utilitaria para parsear fechas de forma segura
+                created_date = parse_jira_datetime(created)
+                if created_date:
+                    created_date.weekday()  # 0=Lunes, 6=Domingo
+                    weekday_data[created_date.weekday()] += 1
+            except (ValueError, AttributeError):
                 continue
     
     # Gráfico de días de la semana
@@ -184,20 +187,17 @@ def render_time_analysis(issues: List[Dict[str, Any]], processor):
     for issue in issues:
         created = issue.get('fields', {}).get('created', '')
         if created:
-            try:
-                created_date = datetime.fromisoformat(created.replace('Z', '+00:00'))
-                age_days = (today - created_date).days
-                
-                if age_days < 7:
-                    age_ranges['< 1 semana'] += 1
-                elif age_days < 28:
-                    age_ranges['1-4 semanas'] += 1
-                elif age_days < 90:
-                    age_ranges['1-3 meses'] += 1
-                else:
-                    age_ranges['> 3 meses'] += 1
-            except ValueError:
-                continue
+            # Usar la función utilitaria para calcular edad
+            age_days = calculate_age_days(created)
+            
+            if age_days < 7:
+                age_ranges['< 1 semana'] += 1
+            elif age_days < 28:
+                age_ranges['1-4 semanas'] += 1
+            elif age_days < 90:
+                age_ranges['1-3 meses'] += 1
+            else:
+                age_ranges['> 3 meses'] += 1
     
     # Gráfico de edad
     fig = px.pie(
@@ -355,21 +355,29 @@ def export_to_excel(df: pd.DataFrame) -> bytes:
     from io import BytesIO
     
     output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, sheet_name='Issues', index=False)
-        
-        # Ajustar ancho de columnas
-        worksheet = writer.sheets['Issues']
-        for column in worksheet.columns:
-            max_length = 0
-            column_letter = column[0].column_letter
-            for cell in column:
-                try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
-                except:
-                    pass
-            adjusted_width = min(max_length + 2, 50)
-            worksheet.column_dimensions[column_letter].width = adjusted_width
+    
+    try:
+        # Intentar usar openpyxl para mejor formato
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, sheet_name='Issues', index=False)
+            
+            # Ajustar ancho de columnas
+            worksheet = writer.sheets['Issues']
+            for column in worksheet.columns:
+                max_length = 0
+                column_letter = column[0].column_letter
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = min(max_length + 2, 50)
+                worksheet.column_dimensions[column_letter].width = adjusted_width
+                
+    except ImportError:
+        # Fallback a xlsxwriter si openpyxl no esta disponible
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            df.to_excel(writer, sheet_name='Issues', index=False)
     
     return output.getvalue()
