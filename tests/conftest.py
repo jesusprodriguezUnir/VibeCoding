@@ -10,12 +10,12 @@ from unittest.mock import Mock, patch
 from pathlib import Path
 import sys
 
-# Agregar src al path
-sys.path.append(str(Path(__file__).parent.parent / "src"))
+# Agregar core al path
+sys.path.append(str(Path(__file__).parent.parent))
 
-from jira_client import JiraClient
-from data_processor import JiraDataProcessor
-from config import Config
+from core.jira_client import JiraClient
+from core.data_processor import JiraDataProcessor
+from core.config import Config
 
 
 @pytest.fixture

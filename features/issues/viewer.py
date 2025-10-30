@@ -16,7 +16,29 @@ def render_issues_list():
     issues = st.session_state.cached_issues
     processor = st.session_state.data_processor
     
+    # Mostrar información sobre la consulta actual
+    if 'last_query_params' in st.session_state:
+        current_query = st.session_state.last_query_params.get('predefined_query', 'Desconocida')
+        if current_query == 'Pendientes':
+            st.info("🚧 **Mostrando Issues Pendientes**: Issues asignados a ti con estados 'NUEVA', 'To Do', o 'ANÁLISIS'")
+        elif current_query == 'En Progreso':
+            st.info("⚡ **Mostrando Issues En Progreso**: Issues que están actualmente en desarrollo")
+        elif current_query == 'Alta Prioridad':
+            st.warning("🔥 **Mostrando Issues de Alta Prioridad**: Issues críticos que requieren atención inmediata")
+    
     st.subheader(f"📋 Lista de Issues ({len(issues)} encontrados)")
+    
+    # Mensaje especial si no hay issues en consultas específicas
+    if len(issues) == 0 and 'last_query_params' in st.session_state:
+        current_query = st.session_state.last_query_params.get('predefined_query', '')
+        if current_query == 'Pendientes':
+            st.success("🎉 ¡Excelente! No tienes issues pendientes en este momento.")
+            st.info("💡 Esto significa que no tienes tareas con estados 'NUEVA', 'To Do', o 'ANÁLISIS' asignadas.")
+        elif current_query == 'En Progreso':
+            st.info("📝 No tienes issues en progreso actualmente. Considera tomar un nuevo issue pendiente.")
+        elif current_query == 'Alta Prioridad':
+            st.success("✅ No tienes issues de alta prioridad pendientes. ¡Buen trabajo!")
+        return
     
     # Opciones de visualización
     view_mode = st.radio(

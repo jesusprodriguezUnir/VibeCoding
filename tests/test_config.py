@@ -6,7 +6,7 @@ Tests para configuración.
 import pytest
 from unittest.mock import patch
 
-from config import Config, JiraConfig, AppConfig
+from core.config import Config, JiraConfig, AppConfig
 
 
 class TestJiraConfig:

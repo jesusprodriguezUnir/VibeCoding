@@ -3,6 +3,10 @@
 *.env
 !.env.example
 
+# Streamlit secrets (NO subir credenciales)
+.streamlit/secrets.toml
+.streamlit/secrets.json
+
 # Archivos de salida
 jira_issues_*.csv
 jira_issues_*.json
