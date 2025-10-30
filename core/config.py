@@ -111,10 +111,14 @@ class Config:
                 "- O Streamlit secrets: [jira] base_url, email, token"
             )
         
+        # Obtener max_results_default desde variable de entorno
+        max_results_default = int(os.getenv('JIRA_MAX_RESULTS_DEFAULT', '100'))
+        
         return JiraConfig(
             base_url=base_url,
             email=email,
-            token=token
+            token=token,
+            max_results_default=max_results_default
         )
     
     @classmethod

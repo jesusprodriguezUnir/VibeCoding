@@ -20,7 +20,7 @@ def render_sidebar() -> Tuple[str, str, str, int]:
         # Navegación principal
         view_type = st.selectbox(
             "🧭 Navegación",
-            ["Dashboard", "Dashboard Personalizable", "Lista de Issues", "Análisis", "Exportar Datos"],
+            ["Lista de Issues", "Dashboard", "Dashboard Personalizable", "Análisis", "Exportar Datos"],
             help="Selecciona la vista que deseas explorar"
         )
         
@@ -50,9 +50,9 @@ def render_query_config() -> Tuple[str, str, int]:
     predefined_query = st.selectbox(
         "Consulta Predefinida",
         [
+            "Pendientes",
             "Mis Issues",
             "En Progreso", 
-            "Pendientes",
             "Completados",
             "Alta Prioridad",
             "Actualizados Hoy",
@@ -70,11 +70,17 @@ def render_query_config() -> Tuple[str, str, int]:
     )
     
     # Límite de resultados
+    try:
+        jira_config = Config.get_jira_config()
+        default_max_results = jira_config.max_results_default
+    except Exception:
+        default_max_results = 100  # Fallback si hay error
+        
     max_results = st.slider(
         "Máximo de Resultados",
         min_value=10,
         max_value=500,
-        value=100,
+        value=default_max_results,
         step=10,
         help="Número máximo de issues a recuperar"
     )
@@ -104,7 +110,17 @@ def render_action_buttons():
     # Estadísticas rápidas
     if validate_issues_data():
         issues_count = get_issues_count()
-        st.success(f"📊 **{issues_count} issues** cargados")
+        
+        # Mostrar información de límite vs resultados obtenidos
+        if 'last_query_params' in st.session_state:
+            last_max_results = st.session_state.last_query_params.get('max_results', 'N/A')
+            if issues_count == last_max_results:
+                st.warning(f"📊 **{issues_count} issues** cargados (límite alcanzado: {last_max_results})")
+                st.info("💡 Aumenta el 'Máximo de Resultados' para ver más")
+            else:
+                st.success(f"📊 **{issues_count} issues** cargados (de máx. {last_max_results})")
+        else:
+            st.success(f"📊 **{issues_count} issues** cargados")
         
         if st.session_state.get('data_processor'):
             issues = get_safe_issues()

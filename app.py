@@ -51,17 +51,48 @@ def main():
     # Renderizar panel de información
     render_info_panel()
     
-    # Cargar datos automáticamente si no hay datos en caché
-    if not st.session_state.cached_issues and not custom_jql.strip():
+    # Detectar cambios en parámetros de consulta para recarga automática
+    current_params = {
+        'predefined_query': predefined_query,
+        'custom_jql': custom_jql,
+        'max_results': max_results
+    }
+    
+    # Inicializar parámetros previos si no existen
+    if 'last_query_params' not in st.session_state:
+        st.session_state.last_query_params = {}
+    
+    # Verificar si los parámetros han cambiado
+    params_changed = st.session_state.last_query_params != current_params
+    
+    # Cargar datos automáticamente si:
+    # 1. No hay datos en caché Y no hay JQL personalizado, O
+    # 2. Los parámetros de consulta han cambiado
+    should_fetch = (
+        (not st.session_state.cached_issues and not custom_jql.strip()) or
+        params_changed
+    )
+    
+    if should_fetch:
         fetch_data(predefined_query, custom_jql, max_results)
+        st.session_state.last_query_params = current_params.copy()
     
     # Renderizar vista seleccionada
-    if view_type == "Dashboard":
+    if view_type == "Lista de Issues":
+        # Mostrar mensaje de bienvenida si es la primera carga con configuración por defecto
+        if (view_type == "Lista de Issues" and 
+            predefined_query == "Pendientes" and 
+            not custom_jql.strip() and
+            not st.session_state.get('welcome_shown', False)):
+            
+            st.info("👋 **¡Bienvenido!** Estás viendo tus **Issues Pendientes** por defecto. Usa la barra lateral para cambiar filtros o vistas.")
+            st.session_state.welcome_shown = True
+            
+        render_issues_list()
+    elif view_type == "Dashboard":
         render_dashboard()
     elif view_type == "Dashboard Personalizable":
         render_dashboard_selector()
-    elif view_type == "Lista de Issues":
-        render_issues_list()
     elif view_type == "Análisis":
         render_analysis()
     elif view_type == "Exportar Datos":
