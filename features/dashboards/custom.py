@@ -7,7 +7,7 @@ from typing import List, Dict, Any
 from dataclasses import dataclass, asdict
 from .widgets import widget_registry, Widget, WidgetSize
 from shared.ui.ui_utils import get_safe_issues, validate_issues_data
-from features.jql.queries import render_jql_query_manager
+from features.jql.queries import render_jql_manager
 
 
 @dataclass
@@ -123,7 +123,7 @@ def render_dashboard_selector():
         render_dashboard_tab(manager)
     
     with tab2:
-        render_jql_query_manager()
+        render_jql_manager()
     
     with tab3:
         render_widget_gallery()
