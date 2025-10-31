@@ -5,6 +5,7 @@ import streamlit as st
 import pandas as pd
 from typing import List, Dict, Any
 from shared.utils import format_number
+from shared.data_fetcher import load_more_issues, load_all_issues_batch
 
 
 def render_issues_list():
@@ -16,10 +17,15 @@ def render_issues_list():
     issues = st.session_state.cached_issues
     processor = st.session_state.data_processor
     
+    # Mostrar información de paginación de Jira
+    render_pagination_info()
+    
     # Mostrar información sobre la consulta actual
     if 'last_query_params' in st.session_state:
         current_query = st.session_state.last_query_params.get('predefined_query', 'Desconocida')
-        if current_query == 'Pendientes':
+        if current_query == 'Expedientes':
+            st.info("📋 **Mostrando Expedientes**: Escalaciones de BAU Académico del área específica, creadas en las últimas 80 semanas, activas y sin resolver")
+        elif current_query == 'Pendientes':
             st.info("🚧 **Mostrando Issues Pendientes**: Issues asignados a ti con estados 'NUEVA', 'To Do', o 'ANÁLISIS'")
         elif current_query == 'En Progreso':
             st.info("⚡ **Mostrando Issues En Progreso**: Issues que están actualmente en desarrollo")
@@ -146,25 +152,40 @@ def render_issues_table(filtered_issues: List[Dict[str, Any]], processor):
     
     df = pd.DataFrame(table_data)
     
+    # Botones de exportación
+    col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 2])
+    
+    with col1:
+        if st.button("📊 Exportar Excel", help="Exportar datos a archivo Excel"):
+            export_to_excel(df, "expedientes_jira")
+    
+    with col2:
+        if st.button("📄 Exportar PDF", help="Exportar datos a archivo PDF"):
+            export_to_pdf(df, "expedientes_jira")
+    
+    with col3:
+        if st.button("💾 Exportar CSV", help="Exportar datos a archivo CSV"):
+            export_to_csv(df, "expedientes_jira")
+    
     # Configurar la tabla con altura dinámica
     num_rows = len(df)
     height = min(max(400, num_rows * 35 + 100), 1200)
     
     st.dataframe(
         df,
-        use_container_width=True,
+        width="stretch",  # Reemplaza use_container_width=True
         hide_index=True,
         height=height,
         column_config={
-            "Key": st.column_config.TextColumn("🔑 Key", width="small"),
-            "Resumen": st.column_config.TextColumn("📝 Resumen", width="large"),
-            "Estado": st.column_config.TextColumn("📊 Estado", width="medium"),
-            "Prioridad": st.column_config.TextColumn("🔥 Prioridad", width="medium"),
+            "Key": st.column_config.TextColumn("🔑 Key", width="small"),  # Más pequeño (la mitad)
+            "Resumen": st.column_config.TextColumn("📝 Resumen", width="large"),  # Más grande
+            "Estado": st.column_config.TextColumn("📊 Estado", width="small"),  # Más pequeño (la mitad)
+            "Prioridad": st.column_config.TextColumn("🔥 Prioridad", width="small"),  # Mantener pequeño
             "Proyecto": st.column_config.TextColumn("📁 Proyecto", width="small"),
-            "Asignado": st.column_config.TextColumn("👤 Asignado", width="medium"),
+            "Asignado": st.column_config.TextColumn("👤 Asignado", width="small"),  # Mantener pequeño
             "Creado": st.column_config.DateColumn("📅 Creado", width="small"),
             "Actualizado": st.column_config.DateColumn("🔄 Actualizado", width="small"),
-            "Jira Link": st.column_config.LinkColumn("🔗 Ver en Jira", width="medium")
+            "Jira Link": st.column_config.LinkColumn("🔗 Ver en Jira", width="large")  # Más grande
         }
     )
     
@@ -296,3 +317,277 @@ def get_priority_color(priority: str) -> str:
         'Lowest': '#6c757d'
     }
     return priority_colors.get(priority, '#6c757d')
+
+
+def render_pagination_info():
+    """Renderiza información y controles de paginación de Jira."""
+    pagination = st.session_state.get('pagination_info')
+    
+    if not pagination:
+        return
+    
+    try:
+        total = pagination.get('total', 0)
+        start_at = pagination.get('start_at', 0) 
+        max_results = pagination.get('max_results', 1)  # Default a 1 para evitar división por cero
+        has_more = pagination.get('has_more', False)
+        
+        # Validar que max_results sea válido
+        if max_results <= 0:
+            st.error(f"❌ Error en configuración de paginación: max_results={max_results}")
+            st.write("Datos de paginación:", pagination)
+            return
+        
+        # Calcular información de página
+        current_page = (start_at // max_results) + 1
+        total_pages = (total + max_results - 1) // max_results
+        showing_from = start_at + 1
+        showing_to = min(start_at + max_results, total)
+        
+    except Exception as e:
+        st.error(f"❌ Error procesando paginación: {str(e)}")
+        st.write("Datos de paginación:", pagination)
+        return
+    
+    # Información de paginación
+    col1, col2, col3 = st.columns([2, 1, 1])
+    
+    with col1:
+        if total > max_results:
+            st.info(f"📄 Mostrando {showing_from:,}-{showing_to:,} de {total:,} issues totales (Página {current_page} de {total_pages})")
+            if pagination.get('batch_loaded'):
+                st.success(f"✅ Carga por lotes: {pagination.get('batch_size', 0)} issues cargados")
+            else:
+                st.caption(f"🔧 Debug: start_at={start_at}, max_results={max_results}, total={total}")
+        else:
+            st.info(f"📄 Mostrando todos los {total:,} issues encontrados")
+            if total == max_results:
+                st.warning(f"⚠️ Límite alcanzado: {total} issues. Puede haber más resultados - usa las opciones de carga masiva.")
+    
+    with col2:
+        # Botón página anterior
+        if current_page > 1 and not pagination.get('batch_loaded'):
+            if st.button("⬅️ Página Anterior", key="prev_page"):
+                load_more_issues(current_page - 1)
+                st.rerun()
+    
+    with col3:
+        # Botón página siguiente
+        if has_more and not pagination.get('batch_loaded'):
+            if st.button("➡️ Página Siguiente", key="next_page"):
+                load_more_issues(current_page + 1)
+                st.rerun()
+    
+    # Opciones de carga masiva
+    if total > max_results:
+        with st.expander("🚀 Opciones de Carga Masiva", expanded=False):
+            st.markdown("**Cargar más issues de una vez:**")
+            
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                if st.button("📥 Cargar 250", key="load_250"):
+                    load_all_issues_batch(250)
+            
+            with col2:
+                if st.button("📥 Cargar 500", key="load_500"):
+                    load_all_issues_batch(500)
+            
+            with col3:
+                if st.button("📥 Cargar 1000", key="load_1000"):
+                    load_all_issues_batch(1000)
+            
+            with col4:
+                if st.button("📥 Cargar Todo", key="load_all"):
+                    load_all_issues_batch(total)
+            
+            st.markdown("---")
+            
+            # Carga personalizada
+            col1, col2 = st.columns(2)
+            with col1:
+                custom_count = st.number_input(
+                    "Cantidad personalizada:",
+                    min_value=100,
+                    max_value=min(5000, total),
+                    value=500,
+                    step=100,
+                    key="custom_count"
+                )
+            
+            with col2:
+                if st.button("🎯 Cargar Cantidad", key="load_custom"):
+                    load_all_issues_batch(custom_count)
+            
+            st.caption(f"💡 Total disponible: {total:,} issues. La carga masiva puede tardar unos segundos.")
+    
+    # Selector de página específica para navegación rápida (solo si no es carga masiva)
+    if total_pages > 1 and not pagination.get('batch_loaded'):
+        with st.expander("🔢 Ir a página específica", expanded=False):
+            col1, col2 = st.columns(2)
+            with col1:
+                target_page = st.number_input(
+                    "Número de página",
+                    min_value=1,
+                    max_value=total_pages,
+                    value=current_page,
+                    key="page_selector"
+                )
+            with col2:
+                if st.button("🚀 Ir", key="go_to_page"):
+                    if target_page != current_page:
+                        load_more_issues(target_page)
+                        st.rerun()
+                    else:
+                        st.info("Ya estás en esa página")
+    
+    # Botón para resetear a paginación normal
+    if pagination.get('batch_loaded'):
+        st.markdown("---")
+        if st.button("🔄 Volver a Paginación Normal", key="reset_pagination"):
+            # Resetear a la primera página con el tamaño original
+            original_max = st.session_state.get('last_query_params', {}).get('max_results', 100)
+            load_more_issues(1, original_max)
+    
+    st.markdown("---")
+
+
+def export_to_excel(df: pd.DataFrame, filename: str):
+    """Exporta DataFrame a Excel y permite descarga."""
+    try:
+        from io import BytesIO
+        import xlsxwriter
+        
+        output = BytesIO()
+        
+        # Crear archivo Excel con formato
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            df.to_excel(writer, index=False, sheet_name='Issues')
+            
+            # Obtener el workbook y worksheet para formato
+            workbook = writer.book
+            worksheet = writer.sheets['Issues']
+            
+            # Formato para encabezados
+            header_format = workbook.add_format({
+                'bold': True,
+                'text_wrap': True,
+                'valign': 'top',
+                'fg_color': '#D7E4BD',
+                'border': 1
+            })
+            
+            # Escribir encabezados con formato
+            for col_num, value in enumerate(df.columns.values):
+                worksheet.write(0, col_num, value, header_format)
+            
+            # Ajustar ancho de columnas
+            worksheet.set_column('A:A', 15)  # Key
+            worksheet.set_column('B:B', 50)  # Resumen
+            worksheet.set_column('C:C', 15)  # Estado
+            worksheet.set_column('D:D', 12)  # Prioridad
+            worksheet.set_column('E:E', 12)  # Proyecto
+            worksheet.set_column('F:F', 20)  # Asignado
+            worksheet.set_column('G:G', 12)  # Creado
+            worksheet.set_column('H:H', 12)  # Actualizado
+            worksheet.set_column('I:I', 30)  # Jira Link
+        
+        st.download_button(
+            label="💾 Descargar Excel",
+            data=output.getvalue(),
+            file_name=f"{filename}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            help="Haz clic para descargar el archivo Excel"
+        )
+        
+    except ImportError:
+        st.error("❌ Para exportar a Excel necesitas instalar: pip install xlsxwriter")
+    except Exception as e:
+        st.error(f"❌ Error exportando a Excel: {str(e)}")
+
+
+def export_to_csv(df: pd.DataFrame, filename: str):
+    """Exporta DataFrame a CSV y permite descarga."""
+    try:
+        csv = df.to_csv(index=False)
+        
+        st.download_button(
+            label="💾 Descargar CSV",
+            data=csv,
+            file_name=f"{filename}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
+            mime="text/csv",
+            help="Haz clic para descargar el archivo CSV"
+        )
+        
+    except Exception as e:
+        st.error(f"❌ Error exportando a CSV: {str(e)}")
+
+
+def export_to_pdf(df: pd.DataFrame, filename: str):
+    """Exporta DataFrame a PDF y permite descarga."""
+    try:
+        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import letter, landscape
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+        from reportlab.lib.styles import getSampleStyleSheet
+        from io import BytesIO
+        
+        buffer = BytesIO()
+        
+        # Crear documento PDF en orientación horizontal
+        doc = SimpleDocTemplate(buffer, pagesize=landscape(letter))
+        
+        # Estilos
+        styles = getSampleStyleSheet()
+        
+        # Título
+        title = Paragraph(f"<b>Reporte de Issues - {pd.Timestamp.now().strftime('%d/%m/%Y %H:%M')}</b>", styles['Title'])
+        
+        # Preparar datos para la tabla (limitar columnas para que quepa)
+        pdf_data = []
+        
+        # Encabezados simplificados
+        headers = ['Key', 'Resumen', 'Estado', 'Prioridad', 'Asignado']
+        pdf_data.append(headers)
+        
+        # Datos (truncar resumen para que quepa)
+        for _, row in df.iterrows():
+            pdf_row = [
+                str(row['Key'])[:15],
+                str(row['Resumen'])[:40] + '...' if len(str(row['Resumen'])) > 40 else str(row['Resumen']),
+                str(row['Estado'])[:15],
+                str(row['Prioridad'])[:10],
+                str(row['Asignado'])[:20]
+            ]
+            pdf_data.append(pdf_row)
+        
+        # Crear tabla
+        table = Table(pdf_data)
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        
+        # Construir PDF
+        elements = [title, table]
+        doc.build(elements)
+        
+        st.download_button(
+            label="💾 Descargar PDF",
+            data=buffer.getvalue(),
+            file_name=f"{filename}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+            mime="application/pdf",
+            help="Haz clic para descargar el archivo PDF"
+        )
+        
+    except ImportError:
+        st.error("❌ Para exportar a PDF necesitas instalar: pip install reportlab")
+    except Exception as e:
+        st.error(f"❌ Error exportando a PDF: {str(e)}")

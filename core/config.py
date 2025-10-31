@@ -48,6 +48,7 @@ class Config:
     
     # Consultas JQL predefinidas
     PREDEFINED_QUERIES = {
+        # Consultas personales (asignadas a mi)
         "Mis Issues": "assignee = currentUser() ORDER BY updated DESC",
         "En Progreso": "assignee = currentUser() AND status IN ('EN CURSO', 'In Progress', 'ESCALADO') ORDER BY updated DESC",
         "Pendientes": "assignee = currentUser() AND status IN ('NUEVA', 'To Do', 'ANÁLISIS') ORDER BY updated DESC",
@@ -55,7 +56,12 @@ class Config:
         "Alta Prioridad": "assignee = currentUser() AND priority IN ('High', 'Highest', 'Alto', 'Crítico') ORDER BY updated DESC",
         "Actualizados Hoy": "assignee = currentUser() AND updated >= -1d ORDER BY updated DESC",
         "Actualizados Esta Semana": "assignee = currentUser() AND updated >= -1w ORDER BY updated DESC",
-        "Con Fecha Vencida": "assignee = currentUser() AND duedate < now() AND status NOT IN ('CERRADA', 'Done', 'RESUELTA') ORDER BY duedate ASC"
+        "Con Fecha Vencida": "assignee = currentUser() AND duedate < now() AND status NOT IN ('CERRADA', 'Done', 'RESUELTA') ORDER BY duedate ASC",
+        
+        # Consultas por área/proyecto (todas las incidencias, no solo asignadas a mi)
+        "Expedientes": 'created >= -80w AND project = "BAU Servicios Universitarios - Académico" AND status not in (RESUELTA, CERRADA, DESESTIMADA) AND Subarea = "ari:cloud:cmdb::object/d80a641b-f11a-4ae4-8159-a153bbcbb09d/34" AND issueLinkType in ("is an escalation for") AND statusCategory != done ORDER BY created DESC',
+        "Todas BAU Académico": "project = 'BAU Servicios Universitarios - Académico' ORDER BY updated DESC",
+        "Escalaciones BAU": "project = 'BAU Servicios Universitarios - Académico' AND issueLinkType in ('is an escalation for') AND status NOT IN ('CERRADA', 'Done', 'RESUELTA', 'DESESTIMADA') ORDER BY created DESC"
     }
     
     # Colores para estados

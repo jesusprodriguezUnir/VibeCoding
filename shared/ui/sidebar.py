@@ -50,16 +50,23 @@ def render_query_config() -> Tuple[str, str, int]:
     predefined_query = st.selectbox(
         "Consulta Predefinida",
         [
+            # Consultas de área/proyecto (más útiles para trabajo diario)
+            "Expedientes",
+            "Escalaciones BAU",
+            "Todas BAU Académico",
+            # Separador visual
+            "─── Mis Asignaciones ───",
+            # Consultas personales
             "Pendientes",
-            "Mis Issues",
-            "En Progreso", 
+            "Mis Issues", 
+            "En Progreso",
             "Completados",
             "Alta Prioridad",
             "Actualizados Hoy",
             "Actualizados Esta Semana",
             "Con Fecha Vencida"
         ],
-        help="Selecciona una consulta predefinida común"
+        help="Selecciona una consulta predefinida. Las primeras son por área/proyecto, las últimas son personales."
     )
     
     # JQL personalizado
@@ -77,12 +84,12 @@ def render_query_config() -> Tuple[str, str, int]:
         default_max_results = 100  # Fallback si hay error
         
     max_results = st.slider(
-        "Máximo de Resultados",
+        "Máximo de Resultados por Página",
         min_value=10,
-        max_value=500,
+        max_value=1000,
         value=default_max_results,
-        step=10,
-        help="Número máximo de issues a recuperar"
+        step=50,
+        help="Número máximo de issues a recuperar por página. Usa paginación para ver más resultados."
     )
     
     return predefined_query, custom_jql, max_results

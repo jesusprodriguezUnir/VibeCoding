@@ -39,7 +39,7 @@ class JQLQueryManager:
             name="Escalaciones Sin Asignar",
             description="Issues escalados que no tienen asignee",
             jql='issueLinkType in ("is an escalation for") AND assignee is EMPTY AND statusCategory != done ORDER BY created DESC',
-            max_results=50
+            max_results=150
         ))
         
         # Issues antiguos sin resolver
@@ -84,7 +84,7 @@ class JQLQueryManager:
             name="Issues Vencidos",
             description="Issues con fecha de vencimiento pasada",
             jql='duedate < now() AND status not in (RESUELTA, CERRADA, DESESTIMADA) AND statusCategory != done ORDER BY duedate ASC',
-            max_results=40
+            max_results=100
         ))
     
     def add_query(self, query: CustomJQLQuery):
