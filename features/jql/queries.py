@@ -150,33 +150,6 @@ class JQLQueryRepository:
                 tags=["expedientes", "bau", "academic", "active"]
             ),
             JQLQuery(
-                id="expedientes_pending",
-                name="Expedientes Pendientes",
-                description="Expedientes en estado pendiente o análisis",
-                jql=Config.PREDEFINED_QUERIES["Expedientes Pendientes"],
-                max_results=75,
-                category="university", 
-                tags=["expedientes", "pending", "analysis", "todo"]
-            ),
-            JQLQuery(
-                id="expedientes_in_progress",
-                name="Expedientes En Curso",
-                description="Expedientes actualmente en proceso o escalados",
-                jql=Config.PREDEFINED_QUERIES["Expedientes En Curso"],
-                max_results=75,
-                category="university",
-                tags=["expedientes", "progress", "escalated", "active"]
-            ),
-            JQLQuery(
-                id="expedientes_unassigned",
-                name="Expedientes Sin Asignar",
-                description="Expedientes que necesitan asignación de responsable",
-                jql=Config.PREDEFINED_QUERIES["Expedientes Sin Asignar"],
-                max_results=50,
-                category="university",
-                tags=["expedientes", "unassigned", "needs-assignment", "urgent"]
-            ),
-            JQLQuery(
                 id="university_services_bau",
                 name="BAU Servicios Universitarios",
                 description="Issues del proyecto académico universitario",

@@ -52,9 +52,6 @@ def render_query_config() -> Tuple[str, str, int]:
         [
             # Consultas de área/proyecto (más útiles para trabajo diario)
             "Expedientes",
-            "Expedientes Pendientes", 
-            "Expedientes En Curso",
-            "Expedientes Sin Asignar",
             "Escalaciones BAU",
             "Todas BAU Académico",
             # Separador visual

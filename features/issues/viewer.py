@@ -25,8 +25,6 @@ def render_issues_list():
         current_query = st.session_state.last_query_params.get('predefined_query', 'Desconocida')
         if current_query == 'Expedientes':
             st.info("📋 **Mostrando Expedientes**: Escalaciones de BAU Académico del área específica, creadas en las últimas 80 semanas, activas y sin resolver")
-        elif current_query == 'Expedientes Sin Asignar':
-            st.warning("🚨 **Expedientes Sin Asignar**: Escalaciones críticas que necesitan asignación inmediata de responsable")
         elif current_query == 'Pendientes':
             st.info("🚧 **Mostrando Issues Pendientes**: Issues asignados a ti con estados 'NUEVA', 'To Do', o 'ANÁLISIS'")
         elif current_query == 'En Progreso':
