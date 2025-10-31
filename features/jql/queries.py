@@ -141,6 +141,42 @@ class JQLQueryRepository:
         # Consultas específicas del dominio universitario
         university_queries = [
             JQLQuery(
+                id="expedientes_all",
+                name="Expedientes",
+                description="Todos los expedientes de BAU Académico activos (no cerrados ni resueltos)",
+                jql=Config.PREDEFINED_QUERIES["Expedientes"],
+                max_results=100,
+                category="university",
+                tags=["expedientes", "bau", "academic", "active"]
+            ),
+            JQLQuery(
+                id="expedientes_pending",
+                name="Expedientes Pendientes",
+                description="Expedientes en estado pendiente o análisis",
+                jql=Config.PREDEFINED_QUERIES["Expedientes Pendientes"],
+                max_results=75,
+                category="university", 
+                tags=["expedientes", "pending", "analysis", "todo"]
+            ),
+            JQLQuery(
+                id="expedientes_in_progress",
+                name="Expedientes En Curso",
+                description="Expedientes actualmente en proceso o escalados",
+                jql=Config.PREDEFINED_QUERIES["Expedientes En Curso"],
+                max_results=75,
+                category="university",
+                tags=["expedientes", "progress", "escalated", "active"]
+            ),
+            JQLQuery(
+                id="expedientes_unassigned",
+                name="Expedientes Sin Asignar",
+                description="Expedientes que necesitan asignación de responsable",
+                jql=Config.PREDEFINED_QUERIES["Expedientes Sin Asignar"],
+                max_results=50,
+                category="university",
+                tags=["expedientes", "unassigned", "needs-assignment", "urgent"]
+            ),
+            JQLQuery(
                 id="university_services_bau",
                 name="BAU Servicios Universitarios",
                 description="Issues del proyecto académico universitario",
@@ -157,6 +193,15 @@ class JQLQueryRepository:
                 max_results=50,
                 category="university",
                 tags=["escalation", "academic", "unassigned", "university"]
+            ),
+            JQLQuery(
+                id="bau_escalations",
+                name="Escalaciones BAU",
+                description="Todas las escalaciones del proyecto BAU Académico",
+                jql=Config.PREDEFINED_QUERIES["Escalaciones BAU"],
+                max_results=50,
+                category="university",
+                tags=["escalation", "bau", "academic", "all-escalations"]
             )
         ]
         
