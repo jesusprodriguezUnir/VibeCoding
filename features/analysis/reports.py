@@ -322,6 +322,27 @@ def render_export():
     # Preview de los datos
     st.markdown("### 👀 Vista Previa")
     
+    # Configuración de paginación
+    col_preview_config, col_info = st.columns([1, 2])
+    
+    with col_preview_config:
+        rows_per_page_options = [10, 20, 50, 100]
+        rows_per_page = st.selectbox(
+            "Registros por página:",
+            options=rows_per_page_options,
+            index=1,  # 20 por defecto
+            key="preview_rows_per_page",
+            help="Número de registros a mostrar por página en la vista previa"
+        )
+    
+    with col_info:
+        st.markdown("""
+        **ℹ️ Información sobre límites:**
+        - **Máximo 100 registros**: Viene de la configuración por defecto (`JIRA_MAX_RESULTS_DEFAULT=100`)
+        - **Cambiar límite**: Modifica la variable de entorno o usa el slider en la barra lateral (hasta 1000)
+        - **Paginación**: Navega por todos los registros disponibles
+        """)
+    
     # Obtener base_url para enlaces
     base_url = None
     try:
@@ -330,8 +351,20 @@ def render_export():
     except:
         pass
     
-    # Mostrar primeras 10 filas con enlaces
-    preview_data = export_data.head(10)
+    # Paginación para la vista previa
+    total_rows = len(export_data)
+    total_pages = (total_rows + rows_per_page - 1) // rows_per_page  # Ceiling division
+    
+    if total_pages > 1:
+        page_options = [f"Página {i+1} ({i*rows_per_page + 1}-{(i+1)*rows_per_page if (i+1)*rows_per_page < total_rows else total_rows})" for i in range(total_pages)]
+        selected_page = st.selectbox("Seleccionar página:", page_options, key="preview_page")
+        current_page = page_options.index(selected_page)
+        start_idx = current_page * rows_per_page
+        end_idx = min(start_idx + rows_per_page, total_rows)
+        preview_data = export_data.iloc[start_idx:end_idx]
+    else:
+        preview_data = export_data
+    
     if not preview_data.empty:
         # Construir tabla Markdown con enlaces
         headers = ["Key", "Summary", "Status", "Priority", "Assignee", "Project", "Created", "Updated", "Issue Type"]
@@ -357,6 +390,10 @@ def render_export():
             table_md += f"| {key_display} | {summary} | {status} | {priority} | {assignee} | {project} | {created} | {updated} | {issue_type} |\n"
         
         st.markdown(table_md)
+        
+        # Mostrar información de paginación
+        if total_pages > 1:
+            st.markdown(f"**Mostrando {len(preview_data)} de {total_rows} registros (Página {current_page + 1} de {total_pages})**")
     else:
         st.info("No hay datos para mostrar")
 

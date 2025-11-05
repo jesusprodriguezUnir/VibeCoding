@@ -118,7 +118,7 @@ class Config:
             )
         
         # Obtener max_results_default desde variable de entorno
-        max_results_default = int(os.getenv('JIRA_MAX_RESULTS_DEFAULT', '100'))
+        max_results_default = int(os.getenv('JIRA_MAX_RESULTS_DEFAULT', '500'))
         
         return JiraConfig(
             base_url=base_url,
