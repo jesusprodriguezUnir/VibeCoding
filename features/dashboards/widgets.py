@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from enum import Enum
 from shared.utils import format_number, calculate_age_days
 from shared.ui.ui_utils import get_safe_issues, validate_issues_data
+from core.config import Config
 
 
 class WidgetType(Enum):
@@ -382,7 +383,7 @@ class WidgetRegistry:
                 title="Distribución por Estado"
             )
             fig.update_layout(height=300)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, key="status_distribution_pie")
         else:
             st.info("No hay datos para mostrar")
     
@@ -400,7 +401,7 @@ class WidgetRegistry:
                 title="Distribución por Prioridad"
             )
             fig.update_layout(height=300)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, key="priority_distribution_pie")
         else:
             st.info("No hay datos para mostrar")
     
@@ -432,7 +433,7 @@ class WidgetRegistry:
                 labels={'x': 'Fecha', 'y': 'Número de actualizaciones'}
             )
             fig.update_layout(height=300)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, key="updates_timeline_line")
         else:
             st.info("No hay actualizaciones en el período seleccionado")
     
@@ -448,18 +449,35 @@ class WidgetRegistry:
         )[:limit]
         
         if sorted_issues:
+            # Intentar obtener base_url para links
+            base_url = None
+            try:
+                jira_config = Config.get_jira_config()
+                base_url = jira_config.base_url.rstrip('/')
+            except:
+                pass
+            
             data = []
             for issue in sorted_issues:
                 fields = issue.get('fields', {})
+                key = issue.get('key', 'N/A')
+                if base_url:
+                    key_display = f"[{key}]({base_url}/browse/{key})"
+                else:
+                    key_display = key
                 data.append({
-                    'Key': issue.get('key', 'N/A'),
+                    'Key': key_display,
                     'Summary': fields.get('summary', 'N/A')[:50] + '...' if len(fields.get('summary', '')) > 50 else fields.get('summary', 'N/A'),
                     'Status': fields.get('status', {}).get('name', 'N/A'),
                     'Actualizado': self._format_date(fields.get('updated'))
                 })
             
-            df = pd.DataFrame(data)
-            st.dataframe(df, use_container_width=True, height=300)
+            # Construir tabla Markdown
+            table_md = "| Key | Summary | Status | Actualizado |\n|-----|---------|--------|------------|\n"
+            for row in data:
+                table_md += f"| {row['Key']} | {row['Summary']} | {row['Status']} | {row['Actualizado']} |\n"
+            
+            st.markdown(table_md)
         else:
             st.info("No hay issues para mostrar")
     
@@ -478,19 +496,36 @@ class WidgetRegistry:
         my_issues = my_issues[:limit]
         
         if my_issues:
+            # Intentar obtener base_url para links
+            base_url = None
+            try:
+                jira_config = Config.get_jira_config()
+                base_url = jira_config.base_url.rstrip('/')
+            except:
+                pass
+            
             data = []
             for issue in my_issues:
                 fields = issue.get('fields', {})
+                key = issue.get('key', 'N/A')
+                if base_url:
+                    key_display = f"[{key}]({base_url}/browse/{key})"
+                else:
+                    key_display = key
                 data.append({
-                    'Key': issue.get('key', 'N/A'),
+                    'Key': key_display,
                     'Summary': fields.get('summary', 'N/A')[:60] + '...' if len(fields.get('summary', '')) > 60 else fields.get('summary', 'N/A'),
                     'Status': fields.get('status', {}).get('name', 'N/A'),
                     'Priority': fields.get('priority', {}).get('name', 'N/A'),
                     'Vencimiento': self._format_date(fields.get('duedate'))
                 })
             
-            df = pd.DataFrame(data)
-            st.dataframe(df, use_container_width=True, height=400)
+            # Construir tabla Markdown
+            table_md = "| Key | Summary | Status | Priority | Vencimiento |\n|-----|---------|--------|----------|------------|\n"
+            for row in data:
+                table_md += f"| {row['Key']} | {row['Summary']} | {row['Status']} | {row['Priority']} | {row['Vencimiento']} |\n"
+            
+            st.markdown(table_md)
         else:
             st.info("No tienes issues asignados")
     
@@ -525,7 +560,7 @@ class WidgetRegistry:
                 labels={'x': 'Porcentaje Completado', 'y': 'Proyecto'}
             )
             fig.update_layout(height=300)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, key="project_progress_bar")
         else:
             st.info("No hay datos de proyectos para mostrar")
     
@@ -679,7 +714,7 @@ class WidgetRegistry:
                 labels={'x': 'Número de Issues', 'y': 'Asignee'}
             )
             fig.update_layout(height=300)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, key="assignee_workload_bar")
         else:
             st.info("No hay datos de asignees para mostrar")
     
@@ -807,7 +842,7 @@ class WidgetRegistry:
                 height=300
             )
             
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, key="burndown_chart_line")
         else:
             st.info("No hay suficientes datos para mostrar burndown chart")
     

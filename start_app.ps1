@@ -1,7 +1,7 @@
 # VibeCoding - Script de Inicio Mejorado
 # Versión 2.0 - Con verificaciones y diagnósticos
 
-Write-Host "🚀 VibeCoding - Iniciando Aplicación" -ForegroundColor Cyan
+Write-Host "VibeCoding - Iniciando Aplicación" -ForegroundColor Cyan
 Write-Host "=" * 50
 
 # Función para mostrar pasos
@@ -80,7 +80,7 @@ Write-Host "✅ Usando puerto $port" -ForegroundColor Green
 
 # Iniciar aplicación
 Write-Host ""
-Write-Host "� Iniciando VibeCoding..." -ForegroundColor Green
+Write-Host "Iniciando VibeCoding..." -ForegroundColor Green
 Write-Host "🌐 URL: http://localhost:$port" -ForegroundColor Cyan
 Write-Host "🛑 Presiona Ctrl+C para detener" -ForegroundColor Yellow
 Write-Host "-" * 50
@@ -99,5 +99,5 @@ try {
 }
 
 Write-Host ""
-Write-Host "� ¡Gracias por usar VibeCoding!" -ForegroundColor Cyan
+Write-Host "¡Gracias por usar VibeCoding!" -ForegroundColor Cyan
 Read-Host "Presiona Enter para salir"

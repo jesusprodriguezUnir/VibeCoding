@@ -8,6 +8,7 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 from typing import List, Dict, Any
 from shared.utils import format_number, parse_jira_datetime, calculate_age_days
+from core.config import Config
 
 
 def render_analysis():
@@ -88,7 +89,7 @@ def render_trends_analysis(issues: List[Dict[str, Any]], processor):
             hovermode='x unified'
         )
         
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True, key="timeline_trend_line")
         
         # Estadísticas de tendencia
         col1, col2, col3 = st.columns(3)
@@ -131,7 +132,7 @@ def render_team_analysis(issues: List[Dict[str, Any]], processor):
         )
         
         fig.update_layout(height=max(300, len(assignee_data) * 40))
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True, key="assignee_distribution_bar")
         
         # Tabla detallada
         st.markdown("### 📊 Detalle por Asignee")
@@ -176,7 +177,7 @@ def render_time_analysis(issues: List[Dict[str, Any]], processor):
         labels={'x': 'Día de la Semana', 'y': 'Número de Issues'}
     )
     
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, key="weekday_creation_bar")
     
     # Análisis de edad de issues
     st.markdown("### 📅 Edad de Issues")
@@ -206,7 +207,7 @@ def render_time_analysis(issues: List[Dict[str, Any]], processor):
         title="Distribución por Edad de Issues"
     )
     
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, key="age_distribution_pie")
 
 
 def render_patterns_analysis(issues: List[Dict[str, Any]], processor):
@@ -259,7 +260,7 @@ def render_patterns_analysis(issues: List[Dict[str, Any]], processor):
                 color_continuous_scale='Blues'
             )
             
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, key="status_priority_heatmap")
 
 
 def render_export():
@@ -272,16 +273,16 @@ def render_export():
     
     st.header("📤 Exportar Datos")
     
-    # Opciones de exportación
-    col1, col2 = st.columns(2)
+    # Formatos de exportación
+    st.subheader("📊 Formatos Disponibles")
+    
+    # Preparar datos para exportación
+    export_data = prepare_export_data(issues)
+    
+    # Botones de descarga en fila
+    col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.subheader("📊 Formatos Disponibles")
-        
-        # Preparar datos para exportación
-        export_data = prepare_export_data(issues)
-        
-        # Botones de descarga
         csv_data = export_data.to_csv(index=False)
         st.download_button(
             label="📄 Descargar CSV",
@@ -290,7 +291,8 @@ def render_export():
             mime="text/csv",
             use_container_width=True
         )
-        
+    
+    with col2:
         excel_data = export_to_excel(export_data)
         st.download_button(
             label="📊 Descargar Excel",
@@ -299,7 +301,8 @@ def render_export():
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             use_container_width=True
         )
-        
+    
+    with col3:
         json_data = export_data.to_json(orient='records', indent=2)
         st.download_button(
             label="📋 Descargar JSON",
@@ -309,16 +312,53 @@ def render_export():
             use_container_width=True
         )
     
-    with col2:
-        st.subheader("📈 Estadísticas de Exportación")
+    # Estadísticas de Exportación (ocupando toda la pantalla)
+    st.subheader("📈 Estadísticas de Exportación")
+    
+    st.metric("📊 Total Issues", len(issues))
+    st.metric("📁 Columnas", len(export_data.columns))
+    st.metric("💾 Tamaño Estimado (CSV)", f"{len(csv_data) / 1024:.1f} KB")
+    
+    # Preview de los datos
+    st.markdown("### 👀 Vista Previa")
+    
+    # Obtener base_url para enlaces
+    base_url = None
+    try:
+        jira_config = Config.get_jira_config()
+        base_url = jira_config.base_url.rstrip('/')
+    except:
+        pass
+    
+    # Mostrar primeras 10 filas con enlaces
+    preview_data = export_data.head(10)
+    if not preview_data.empty:
+        # Construir tabla Markdown con enlaces
+        headers = ["Key", "Summary", "Status", "Priority", "Assignee", "Project", "Created", "Updated", "Issue Type"]
+        table_md = "| " + " | ".join(headers) + " |\n"
+        table_md += "|" + "|".join(["---"] * len(headers)) + "|\n"
         
-        st.metric("📊 Total Issues", len(issues))
-        st.metric("📁 Columnas", len(export_data.columns))
-        st.metric("💾 Tamaño Estimado (CSV)", f"{len(csv_data) / 1024:.1f} KB")
+        for _, row in preview_data.iterrows():
+            key = str(row['Key'])
+            if base_url and key:
+                key_display = f"[{key}]({base_url}/browse/{key})"
+            else:
+                key_display = key
+            
+            summary = str(row['Summary'])[:40] + "..." if len(str(row['Summary'])) > 40 else str(row['Summary'])
+            status = str(row['Status'])
+            priority = str(row['Priority'])
+            assignee = str(row['Assignee'])
+            project = str(row['Project'])
+            created = str(row['Created'])[:10] if str(row['Created']) else ''  # Solo fecha
+            updated = str(row['Updated'])[:10] if str(row['Updated']) else ''  # Solo fecha
+            issue_type = str(row['Issue_Type'])
+            
+            table_md += f"| {key_display} | {summary} | {status} | {priority} | {assignee} | {project} | {created} | {updated} | {issue_type} |\n"
         
-        # Preview de los datos
-        st.markdown("### 👀 Vista Previa")
-        st.dataframe(export_data.head(10), use_container_width=True)
+        st.markdown(table_md)
+    else:
+        st.info("No hay datos para mostrar")
 
 
 def prepare_export_data(issues: List[Dict[str, Any]]) -> pd.DataFrame:
